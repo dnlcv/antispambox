@@ -1,4 +1,4 @@
-FROM debian:stable-slim
+FROM debian:bullseye-slim
 
 # shell to start from Kitematic
 ENV DEBIAN_FRONTEND=noninteractive
