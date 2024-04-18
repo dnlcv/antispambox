@@ -1,0 +1,25 @@
+---
+version: "3.8"
+services:
+  antispambox:
+    image: antispambox:bullseye-slim
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: antispambox
+    networks:
+      - spamnet
+    volumes:
+      - bayesdb:/var/spamassassin/bayesdb
+    secrets:
+      - source: imap_accounts
+        target: imap_accounts.json
+networks:
+  spamnet:
+    name: spamnet
+volumes:
+  bayesdb:
+  accounts:
+secrets:
+  imap_accounts:
+    file: ./files/config/secrets/imap_accounts.json

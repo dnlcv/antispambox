@@ -32,7 +32,7 @@ logger.addHandler(logging.StreamHandler())
 # read account information
 try:
 
-    with open("/root/accounts/imap_accounts.json", 'r') as f:
+    with open("/run/secrets/imap_accounts.json", 'r') as f:
         datastore = json.load(f)
 
     HOST = datastore["antispambox"]["account"]["server"]
@@ -102,11 +102,11 @@ def pushing(server):
 
             if responses:
                 logger.info(responses)
-                
+
             else:
                 logger.info("Response: nothing")
                 count = count + 1
-             
+
             if count > 5:
                 logger.info("No responses from Server - Scan for Spam, then Restart")
                 scan_spam()

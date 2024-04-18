@@ -1,94 +1,96 @@
+- [antispambox](#antispambox)
+  - [Using the container](#using-the-container)
+    - [Build the container](#build-the-container)
+    - [IMAP config file and other details](#imap-config-file-and-other-details)
+      - [IMAP Config properties](#imap-config-properties)
+      - [Updating the configuration file](#updating-the-configuration-file)
+    - [Starting the container](#starting-the-container)
+    - [Train spamassassin and spamd](#train-spamassassin-and-spamd)
+    - [Hints](#hints)
+  - [License](#license)
+
+
 # antispambox
+**IMPORTANT:** This is a re-packaged version of the original _[antispambox](https://github.com/rsmuc/antispambox)_ with some small changes:
 
-## Status
+- Files in the repo were re-organized.
+- The original code and configuration files are the SAME but the base image docker image was pinned to `debian:bullseye-slim` to allow the original code to run as originally designed.
+- A docker compose file was included to make it easier to run.
+- The imap_accounts file is now set as a docker compose secret.
 
-**under development**
-
-container should be working basically
-
-## About
-
-Antispambox is based on the idea of [IMAPScan](https://github.com/dc55028/imapscan). It's an Docker container including [ISBG](https://github.com/isbg/isbg). With ISBG it's possible to scan remotely an IMAP mailbox for SPAM mails with spamassassin. So we are not dependent to the SPAM filter of our provider.
-
-Antispambox does have two anti-spam-engines integrated. Spamassassin and RSpamd.
-
-### Why not IMAPScan?
-
-(Thanks to [dc55028](https://github.com/dc55028) for adding the MIT license to the IMAPScan repository)
-
-* I prefer Python instead of Bash scripts
-* I made several modifications (see Features) and not all of the modifications would be compatible to the ideas of IMAPScan
-* I integrated push support
-* ...
-
-### Why not ISBG only?
-
-ISBG is only supporting spamassassin as backend. Spamassassin is a very effective, but not very efficient SPAM filter. At home I'm running the docker container on a very small embedded PC with an Atom CPU. On my smartphone I'm using K9Mail with push support. So it is very important that the scanning for SPAM is very fast. With spamassassin it takes too long to filter the mails, so SPAM mails are shown on my smartphone before they are filterd out. The solution: rspamd. 
-
-But rspamd is not supported by ISBG and will not be supported to keep ISBG maintainable. So I forked ISBG and created IRSD. 
-
-Antispambox integrated both.
-
-### Why not IRSD only?
-
-rspamd scans the mails on my machine very fast and efficient but the detection rate is not as good for me as spamassassin. 
-
-### Features
-
-* Integration of ISBG (spamassassin)
-* Integration of IRSD (rspamd)
-* Integrated PUSH / IMAP IDLE support
-* integrated geo database and filters for it
-* focused on encrypted emails (header analysis only)
-* **custom spamassassin rules for Germany and header analysis (my mails are prefiltered by mailbox.org - this container is only focused to the SPAM the MBO filter does not catch) - so the rules may not match your requirements**
-* In future: Webinterface to configure everything
-* In future: Configure the rspamd webinterface
-* In future: Support multiple IMAP accounts within one container
+Please take a look at the original repo to see the list of features and other important information: [https://github.com/rsmuc/antispambox](https://github.com/rsmuc/antispambox)
 
 ## Using the container
 
-### building the container
+### Build the container
 
-* ```docker build -f Dockerfile -t antispambox . --no-cache```
+```bash
+docker compose build
+```
 
-### starting the container
+### IMAP config file and other details
 
-* ```sudo docker volume create bayesdb```
+By defaul the IMAP config file is located inside this repo at the following path:
 
-  ```
-* ```sudo docker volume create accounts```
+- `source/files/config/secrets/imap_accounts.json`
 
-  ```
-* ```sudo docker run -d --name antispambox --restart always -v bayesdb:/var/spamassassin/bayesdb -v accounts:/root/accounts antispambox```
+And the default configuration looks like this:
 
-### workflow and configuration
+```json
+{
+  "antispambox": {
+    "enabled": "False",
+    "account": {
+      "server": "imap.example.net",
+      "user": "username",
+      "password": "examplepassword",
+      "junk_folder": "Junk",
+      "inbox_folder": "INBOX",
+      "ham_train_folder": "HAM",
+      "spam_train_folder": "SPAMTrain",
+      "spam_train_folder2": "SPAMTrain"
+    }
+  }
+}
+```
 
-* To configure the container run:
-  * `docker exec -i -t antispambox /bin/bash`
-  * use nano to configure the /root/accounts/imap_accounts.json
-* startup.py will be directly started with the docker container. To enable the scanning for spam, you need to set in /accounts/imap_accounts.json the enabled flag to True. By deafult this flag will be set to False until the configuration is finished. 
-* First configure you mail account in /root/accounts/imap_accounts.json
-* Train spamassassinn and spamd:
-  * To ensure that spamassassin and spamd bayes filtering is working you should train it at least with 200 SPAM and 200 HAM mails. 
+#### IMAP Config properties
+- `antispambox.enabled`: Set to `True` to enable the scanning for spam. Defaults to `False`.
+- `antispambox.account.server`: IMAP server host name.
+- `antispambox.account.user`: IMAP account user name.
+- `antispambox.account.password`: IMAP account password.
+- `antispambox.account.junk_folder`: Junk or Spam folder.
+- `antispambox.account.inbox_folder`: Inbox folder.
+- `antispambox.account.ham_train_folder`: HAM folder to train spamassassin and spamd.
+- `antispambox.account.spam_train_folder`: SPAM folder to train spamassassin.
+- `antispambox.account.spam_train_folder2`: SPAM folder to train spamd.
 
-    To train the backends copy your SPAM and HAM messages in the IMAP folders you configured for SPAM_train and HAM_traing.
-* Set the enabled flag in /root/accounts/imap_accounts.json to True.
-* Restart the docker container
-* The docker container will not start with IMAP idle to your INBOX folder and check for new mails. If a SPAM mail is detected, Antispambox will move the SPAM to your JUNK folder.
-* Mails you move manually to SPAM_train will be learned as SPAM. Mails you move manually to HAM_train will learned as HAM.  The backend services spamassassin and rspamd will learn improve their detection rate with each learned mail.
+#### Updating the configuration file
+
+1. Make sure to update the `imap_accounts.json` file before you run the container.
+2. To enable the scanning for spam, you need to set the `antispambox.enabled` property to `True`.
+3. You might be able to start the container with the `antispambox.enabled` flag set to `False` BUT the scannning will be disabled and you will required to stop the container and edit the files.
+
+### Starting the container
+
+```bash
+docker compose up -d
+```
+
+### Train spamassassin and spamd
+
+**IMPORTANT:**
+
+- To ensure that spamassassin and spamd bayes filtering is working you should train it at least with 200 SPAM and 200 HAM mails.
+- To train the backends copy your SPAM and HAM messages in the IMAP folders you configured for SPAM_train and HAM_traing.
+- Mails you move manually to SPAM_train will be learned as SPAM. Mails you move manually to HAM_train will learned as HAM. The backend services spamassassin and rspamd will learn and improve their detection rate with each learned mail.
 
 ### Hints
 
-* To see how many mails rspamd has already learned or detected as SPAM or HAM, just run: `spamc stat`
-
-* To see how many mails spamassassin has already learned run: `sa-learn --dump magic`
-
-* There is a logfile to see the IMAP idle and scanning process: /var/log/antispambox.log
-
-## TODOs
-
-* see features
-* PEP8 & static code analysis
+- To access the running container use: `docker exec -i -t antispambox /bin/bash`
+- To see how many mails rspamd has already learned or detected as SPAM or HAM, just run: `spamc stat`
+- To see how many mails spamassassin has already learned run: `sa-learn --dump magic`.
+- to see the IMAP idle and scanning process check: `/var/log/antispambox.log`
 
 ## License
 

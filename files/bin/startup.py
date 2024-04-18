@@ -35,7 +35,7 @@ def check_imap_configuration():
     """ check if the IMAP account has already been configured"""
 
     try:
-        with open("/root/accounts/imap_accounts.json", 'r') as f:
+        with open("/run/secrets/imap_accounts.json", 'r') as f:
             datastore = json.load(f)
         enabled = datastore["antispambox"]["enabled"]
         host = datastore["antispambox"]["account"]["server"]
@@ -71,7 +71,7 @@ def fix_permissions():
 
 def download_spamassassin_rules():
     """download the spamassassin rules"""
-    p = subprocess.Popen(['/usr/bin/sa-update', '--no-gpg', '-v', '--channelfile', '/root/sa-channels'],
+    p = subprocess.Popen(['/usr/bin/sa-update', '--no-gpg', '-v', '--channelfile', '/etc/spamassassin/sa-channels'],
                          stdout=subprocess.PIPE)
     (output, err) = p.communicate()
     if p.returncode != 0 and p.returncode != 1:
@@ -88,7 +88,7 @@ def download_spamassassin_rules():
 
 
 def start_imap_idle():
-    p = subprocess.Popen(['python3', '/root/antispambox.py'], stdout=subprocess.PIPE)
+    p = subprocess.Popen(['python3', '/antispambox/antispambox.py'], stdout=subprocess.PIPE)
     (output, err) = p.communicate()
     # this will usually run endless
     if p.returncode != 0:
@@ -104,8 +104,8 @@ cleanup_file("/var/spamassassin/scan_lock")
 cleanup_file("/root/.cache/isbg/lock")
 cleanup_file("/root/.cache/irsd/lock")
 
-print("\n\n *** copy imap_accounts.json file")
-copy_file_if_not_exists("/root/imap_accounts.json", "/root/accounts/imap_accounts.json")
+# print("\n\n *** copy imap_accounts.json file")
+# copy_file_if_not_exists("/root/imap_accounts.json", "/antispambox/accounts/imap_accounts.json")
 
 print("\n\n *** fixing permissions")
 fix_permissions()
