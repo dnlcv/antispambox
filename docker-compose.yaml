@@ -2,6 +2,7 @@
 version: "3.8"
 services:
   antispambox:
+    image: antispambox:bullseye-slim
     build:
       context: .
       dockerfile: Dockerfile
